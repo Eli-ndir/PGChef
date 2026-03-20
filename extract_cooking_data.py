@@ -51,8 +51,6 @@ def extract_ingredients(items_data):
         ingredients_list.append({
             "Name": item.get('Name', 'Unknown'),
             "StackSize": item.get('MaxStackSize', 1),
-            # VegStatus not available in game data - defaulting to Unknown
-            # You can manually update specific entries if needed
             "Rarity": "Unknown",
             "VegStatus": "Unknown"
         })
