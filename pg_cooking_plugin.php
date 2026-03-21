@@ -1,9 +1,10 @@
 <?php
 /**
 * Plugin Name: PGChef - Project Gorgon Cooking Helper
-* Version: 1.0
+* Version: 1.1
 * Description: Upload your inventory JSON and get recipe recommendations based on available ingredients or based on all ingredients available in game
 * Author: Elindreki & Claude AI
+* Update 3/21/26: Showing Meal type (Meal/Snack/Instantsnack) and VegStatus (Meat/Fish/Vegetarian)
 */
 
 
@@ -91,12 +92,32 @@ class PGCookingHelper {
     					<input type="checkbox" id="useAllIngredients">
    					 Show all possible recipes (ignore my inventory)
 					</label>
+		<!---			<label>
+						<br />					
+						<button class="pg-btn" id="selectMealTypeBtn">Include Snacks or Meals or InstantSnacks (default includes all)</button> 
+					</label>         	--->			
+					
 <!--					<label>
 						<br />    					
     					<input type="checkbox" id="showOnlyCanMakeList">
    					 Show only recipes I can make with my inventory (no partial recipes)
 					</label>              -->
             </div>
+         		<div id="mealtypeSettings" class="pg-mealtype-section" style="display: none;">	
+					<strong>Included Meal Types (select any, default: all)</strong>
+					<div class="mealtype-controls">		
+					<label>
+						 <br />   					
+    					<input type="checkbox" id="selectMeals">
+   					 Meals
+    					<input type="checkbox" id="selectSnacks">
+   					 Snacks
+     					<input type="checkbox" id="selectInstantSnacks">
+   					 Instant-Snacks
+					</label>
+					</div> 	     
+              </div>
+              
                 
 					<button class="pg-btn pg-btn-primary" id="findRecipes">Find Recipes!</button>
 				</div>
@@ -171,6 +192,14 @@ class PGCookingHelper {
 		}
         
 		.pg-skill-section, .pg-results {
+				background: white;
+				border: 1px solid #ddd;
+				border-radius: 8px;
+				padding: 16px;
+				margin: 20px 0;
+		}
+		
+		.pg-mealtype-section {
 				background: white;
 				border: 1px solid #ddd;
 				border-radius: 8px;
@@ -272,6 +301,7 @@ class PGCookingHelper {
 				const fileInput = $('#inventoryFile');
 				const fileDatabase = $('#inventoryDatabase');
 				let useingredients_db_handle = false;
+				//let selectMealType_handle = false;
             
 				// Drag and drop
 				uploadArea.on('dragover', function(e) {
@@ -307,7 +337,13 @@ class PGCookingHelper {
 				    $('#skillSettings').show();
 				    $('#fileInfo').html('<italic>Mode:</italic> Using all PG ingredients').show();
 				});
-       
+				
+			  // $('#selectMealTypeBtn').on('click', function() {
+       				//selectMealType_handle = true; 
+       				// use 3 check boxes to include Meal/Snack/InstantSnack
+       				$('#mealtypeSettings').show(); 
+       				//$('#mealtypeInfo').html('<italic>Mode:</italic> Please select a meal type').show();
+           //});
             
 				function handleFile(file) {
 					if (!file.name.toLowerCase().endsWith('.json')) {
@@ -380,6 +416,8 @@ class PGCookingHelper {
 					else{
 						inventoryData=[];
 					}
+					
+						
                 
 					$('#loading').show();
 					$('#results').hide();
@@ -389,9 +427,12 @@ class PGCookingHelper {
 						max_cooking_level: $('#maxCookingLevel').val(),
 						min_gourmand_level: $('#minGourmandLevel').val(),
 						max_gourmand_level: $('#maxGourmandLevel').val(),
-						use_all_ingredients: $('#useAllIngredients').prop('checked'),
+						use_all_ingredients: $('#useAllIngredients').prop('checked',false),
+						select_meal_type_Meal: $('#selectMeals').prop('checked'), 
+						select_meal_type_Snack: $('#selectSnacks').prop('checked'), 
+						select_meal_type_InstantSnack: $('#selectInstantSnacks').prop('checked'), 
 						useingredients_db: useingredients_db_handle
-					};
+					};    
                 
 					$.ajax({
 						url: pg_ajax.ajax_url,
@@ -566,6 +607,10 @@ class PGCookingHelper {
 				$recipe['GourmandLevel'] > intval($settings['max_gourmand_level'])) {
 				continue;
 			}
+			
+			$meal_filter_active = $settings['select_meal_type_Meal'] || 
+                      $settings['select_meal_type_Snack'] || 
+                      $settings['select_meal_type_InstantSnack'];
          
 			$missing_ingredients = array();
 			$have_ingredients = array();
@@ -576,12 +621,19 @@ class PGCookingHelper {
             
 				foreach ($recipe['Ingredients'] as $required_ingredient) {
 					$found = false;
-					foreach ($ingredient_pool as $have_ingredient)	{				
-						if (stripos($have_ingredient['Name'], $required_ingredient) !== false ||
-								stripos($required_ingredient, $have_ingredient['Name']) !== false) {
-								$have_ingredients[] = $required_ingredient;
-								$found = true;
-								break;
+			
+					//if MealType is selected and the recipe belongs to that category, continue		
+					if (!$meal_filter_active || ($settings['select_meal_type_Meal'] && $recipe['MealType'] == 'Meal') ||
+				    ($settings['select_meal_type_Snack'] && $recipe['MealType'] == 'Snack') ||
+				    ($settings['select_meal_type_InstantSnack'] && $recipe['MealType'] == 'InstantSnack')) {
+
+						foreach ($ingredient_pool as $have_ingredient)	{						
+							if (stripos($have_ingredient['Name'], $required_ingredient) !== false ||
+									stripos($required_ingredient, $have_ingredient['Name']) !== false) {
+									$have_ingredients[] = $required_ingredient;
+									$found = true;
+									break;
+							}
 						}
 					}
                 

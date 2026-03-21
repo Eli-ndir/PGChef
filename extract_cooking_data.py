@@ -65,6 +65,7 @@ def has_keyword(keywords, term):
     """Check if a keyword exists, ignoring any =value suffix."""
     return any(k == term or k.startswith(term + '=') for k in keywords)
 
+
 def extract_preparedfood(items_data):
     """
     Extract all items tagged as PreparedFood.
@@ -77,23 +78,33 @@ def extract_preparedfood(items_data):
         keywords = item.get('Keywords', [])
         item_code = int(key.replace('item_', ''))
 
-        if not has_keyword(keywords, 'PreparedFood'):
-	        continue
+#        if not has_keyword(keywords, 'PreparedFood'):
+#	        continue
         if has_keyword(keywords, 'MeatDish'):
         	veg_status = 'Meat'
         elif has_keyword(keywords, 'FishDish'):
         	veg_status = 'Fish'
         elif has_keyword(keywords, 'VegetarianDish'):
         	veg_status = 'Vegetarian'
+        elif has_keyword(keywords, 'FruitDish'):
+        	veg_status = 'Vegetarian'
+        elif has_keyword(keywords, 'DairyDish'):
+        	veg_status = 'Vegetarian'
+        elif has_keyword(keywords, 'BreadDish'):
+        	veg_status = 'Vegetarian'     
+        elif has_keyword(keywords, 'EggDish'):
+        	veg_status = 'Vegetarian' 
+        elif has_keyword(keywords, 'Drink'):
+        	veg_status = 'Vegetarian'         	            	       	    	
         else:
         	veg_status = 'Unknown'
 
 
         # Determine meal type
-        if has_keyword(keywords, 'Snack'):
-            meal_type = 'Snack'
-        elif has_keyword(keywords, 'InstantSnack'):
+        if has_keyword(keywords, 'InstantSnack'):
             meal_type = 'InstantSnack'
+        elif has_keyword(keywords, 'Snack'):
+            meal_type = 'Snack'
         elif has_keyword(keywords, 'Edible'): 
             meal_type = 'Meal'
         elif has_keyword(keywords, 'CookingIngredient'): 
