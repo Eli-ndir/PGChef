@@ -92,12 +92,14 @@ def extract_preparedfood(items_data):
         # Determine meal type
         if has_keyword(keywords, 'Snack'):
             meal_type = 'Snack'
-        elif has_keyword(keywords, 'Meal'): 
-            meal_type = 'Meal'
         elif has_keyword(keywords, 'InstantSnack'):
             meal_type = 'InstantSnack'
-        else:
+        elif has_keyword(keywords, 'Edible'): 
             meal_type = 'Meal'
+        elif has_keyword(keywords, 'CookingIngredient'): 
+            meal_type = 'CookingIngredient'
+        else:
+            meal_type = 'Unknown'
 
 
         # Determine gourmand level
