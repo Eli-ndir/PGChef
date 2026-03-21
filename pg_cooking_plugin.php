@@ -433,7 +433,7 @@ class PGCookingHelper {
 						canMake.forEach(recipe => {
 								canMakeHtml += `
 									<div class="recipe-item">
-										<div class="recipe-name">${recipe.Name}</div>
+										<div class="recipe-name">${recipe.Name} • ${recipe.MealType} • ${recipe.VegStatus}</div>
 										<div class="recipe-level">Cooking Level ${recipe.CookingLevel} • Gourmand Level ${recipe.GourmandLevel}</div>
 										<div class="ingredients-needed">
 												<italic>Ingredients:</italic> ${recipe.Ingredients.map(ing => 
@@ -453,7 +453,7 @@ class PGCookingHelper {
 						almostCanMake.forEach(recipe => {
 								almostCanMakeHtml += `
 									<div class="recipe-item">
-										<div class="recipe-name">${recipe.Name}</div>
+										<div class="recipe-name">${recipe.Name} • ${recipe.MealType} • ${recipe.VegStatus}</div>
 										<div class="recipe-level">Cooking Level ${recipe.CookingLevel} • Gourmand Level ${recipe.GourmandLevel}</div>
 										<div class="ingredients-needed">
 												<italic>Have:</italic> ${recipe.have_ingredients.map(ing => 
@@ -596,6 +596,7 @@ class PGCookingHelper {
 						'Name' => $recipe['Name'],
 						'CookingLevel' => $recipe['CookingLevel'],
 						'GourmandLevel' => $recipe['GourmandLevel'],
+						'MealType' => $recipe['MealType'],
 						'Ingredients' => $have_ingredients
 					);
 				} elseif (count($missing_ingredients) <= 2 && count($have_ingredients) > 0) {
@@ -604,6 +605,7 @@ class PGCookingHelper {
 						'Name' => $recipe['Name'],
 						'CookingLevel' => $recipe['CookingLevel'],
 						'GourmandLevel' => $recipe['GourmandLevel'],
+						'MealType' => $recipe['MealType'],
 						'have_ingredients' => $have_ingredients,
 						'missing_ingredients' => $missing_ingredients
 					);
@@ -706,7 +708,13 @@ class PGCookingHelper {
         
 	return $ingredients;
 	}
-            
+
+
+	private function load_gourmand_report_from_txt() {
+
+    return $result;	    
+	} 
+	            
 	private function load_recipes_from_json() {
 	    $result = array(
         'success' => false,
@@ -752,10 +760,11 @@ class PGCookingHelper {
             'debug' => $loaded,
 				"Recipes" => array(
                 array(
-				      "Name" => "Baked Potato",
-				      "CookingLevel" => 0,
-				      "GourmandLevel" => 0,
-				      "Ingredients" => array('potato', 'salt')
+				      'Name' => 'Baked Potato',
+				      'CookingLevel' => 0,
+				      'GourmandLevel' => 0,
+				      'VegStatus': => 'Vegetarian',
+				      'Ingredients' => array('potato', 'salt')
 				      )
 			      )
         );
@@ -782,6 +791,8 @@ class PGCookingHelper {
 			'Name' => $this->clean_ingredient_name($recipe['Name']),
 			'CookingLevel' => intval($recipe['CookingLevel']),
 			'GourmandLevel' => intval($recipe['GourmandLevel']),
+			'MealType' => intval($recipe['MealType']),
+			'VegStatus': => intval($recipe['VegStatus']),
 			'Ingredients' => $ingredient_names,
 			'Ingredients_detailed' => $recipe['Ingredients'] // Store full ingredient data for future use
 		);
