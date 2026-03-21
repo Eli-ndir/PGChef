@@ -12,23 +12,23 @@ Description: Upload your inventory JSON and get recipe recommendations based on 
 ### Advanced Filtering System - implemented
 - **Cooking Skill Level Range**: Filter recipes by required cooking skill (1-100)
 - **Gourmand Level Range**: Optional filter for gourmand XP progression
-
+- **Meal Categories**: Meal vs. snack vs. instant-snack
+  
 ### Advanced Filtering System - planned
 - **Dietary Preferences**: Vegetarian vs. meat recipes
-- **Meal Categories**: Meal vs. snack vs. instant-snack
 - **Cheese Content**: Toggle for recipes containing cheese
 - **Inventory Fit**: Show only recipes possible with current ingredients vs including buyable ingredients
 - **Gourmand Progression**: Show only recipes for food that have not been eaten yet, based on imported PG gourmand report
 
 ### Data Structure
 - **Ingredient Classification**:
-  - Meat / fish / vegetarian / cheese
+  - Meat / fish / vegetarian
   - Can be bought vs. rare/found-only
 - **Recipe Categories**:
   - Level gourmand vs. level cooking skill
   - Vegetarian vs. meat/fish
   - Meal vs. snack vs. insta-snack
-  - Contains cheese
+  - Contains dairy / fruit / eggs or is a drink (all currently classified as vegetarian, unless meat/fish)
 
 ### Possible Features 
 - **Import/Export**:
