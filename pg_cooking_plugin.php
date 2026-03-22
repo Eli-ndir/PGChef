@@ -3,7 +3,7 @@
 * Plugin Name: PGChef - Project Gorgon Cooking Helper
 * Version: 1.1
 * Description: Upload your inventory JSON and get recipe recommendations based on available ingredients or based on all ingredients available in game
-* Author: Elindreki & Claude AI
+* Author: Elindir & Claude AI
 * Update 3/21/26: Showing Meal type (Meal/Snack/Instantsnack) and VegStatus (Meat/Fish/Vegetarian)
 */
 
@@ -427,7 +427,7 @@ class PGCookingHelper {
 						max_cooking_level: $('#maxCookingLevel').val(),
 						min_gourmand_level: $('#minGourmandLevel').val(),
 						max_gourmand_level: $('#maxGourmandLevel').val(),
-						use_all_ingredients: $('#useAllIngredients').prop('checked',false),
+						use_all_ingredients: $('#useAllIngredients').prop('checked'),
 						select_meal_type_Meal: $('#selectMeals').prop('checked'), 
 						select_meal_type_Snack: $('#selectSnacks').prop('checked'), 
 						select_meal_type_InstantSnack: $('#selectInstantSnacks').prop('checked'), 
