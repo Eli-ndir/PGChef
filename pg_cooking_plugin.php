@@ -5,6 +5,7 @@
 * Description: Upload your inventory JSON and get recipe recommendations based on available ingredients or based on all ingredients available in game
 * Author: Elindir & Claude AI
 * Update 3/21/26: Showing Meal type (Meal/Snack/Instantsnack) and VegStatus (Meat/Fish/Vegetarian)
+* Update 3/22/26: Mealtypes (Meal/Snack/Instant-Snack) can now be selected in your search
 */
 
 
