@@ -44,22 +44,21 @@ class PGCookingHelper {
 	}
     
 	public function render_frontend_ui() {
-			
 
 			wp_enqueue_script('jquery');
 			wp_localize_script('jquery', 'pg_ajax', array(
 				'ajax_url' => admin_url('admin-ajax.php'),
 				'nonce' => wp_create_nonce('pg_cooking_nonce')
-			));        
-        
+			));            
         
 		ob_start();
 		?>
 		<div id="pg-cooking-helper">
 				<div class="pg-upload-section">
-					<strong> 🍳 Project: Gorgon PG Chef Cooking Helper</strong>
-					<p>Upload your inventory JSON (or let PG provide all ingredients - no VIP needed) to get recipe recommendations!</p>
-                
+					<div id="pluginDescription" class="pg-plugin-description">
+						<strong> Project: Gorgon Cooking Helper</strong>
+						<p>Upload your inventory JSON (or let PG provide all ingredients - no VIP needed) to get recipe recommendations!</p>
+					</div>                
 					<div id="uploadOptions" class="pg-upload-area" id="uploadArea">
 						<div class="upload-content">
 								<div class="upload-icon">📁</div>
@@ -148,6 +147,10 @@ class PGCookingHelper {
 				padding: 20px;
 				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 		}
+        
+		.pg-plugin-description {
+				justify-content: center;
+		}        
         
 		.pg-upload-area {
 				border: 2px dashed #4CAF50;
