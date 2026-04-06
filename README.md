@@ -19,6 +19,7 @@ Description: Upload your inventory JSON and get recipe recommendations based on 
 - **Cheese Content**: Toggle for recipes containing cheese
 - **Inventory Fit**: Show only recipes possible with current ingredients vs including buyable ingredients
 - **Gourmand Progression**: Show only recipes for food that have not been eaten yet, based on imported PG gourmand report
+- **Compact List vs. Details**: Toggle between showing detailed information & ingredients versus just recipe names, to simplify copy/paste to game chat
 
 ### Data Structure
 - **Ingredient Classification**:
@@ -32,8 +33,6 @@ Description: Upload your inventory JSON and get recipe recommendations based on 
 
 ### Possible Features 
 - **Import/Export**:
-  - Import gourmand report from PG (TXT)
-  - Export recipe lists as JSON/TXT (shopping list)
   - Import recipe lists for event planning
     
     
@@ -62,8 +61,9 @@ Description: Upload your inventory JSON and get recipe recommendations based on 
 ## Usage
 1. Install as WordPress plugin
 2. Add `[pg_cooking_helper]` shortcode to any page/post
-3. Players upload their Project Gorgon inventory JSON
-4. Set skill level preferences and dietary filters
-5. View available recipes and missing ingredient lists
+3. Optional: Players upload their Project Gorgon inventory JSON
+4. Optional: Players upload their Gourmand Report (txt-file, export in-game)
 5. Set skill level preferences and dietary filters
 6. View available recipes and missing ingredient lists
+7. Optional: Toggle between compact and detailed List
+8. View available recipes and missing ingredient lists
