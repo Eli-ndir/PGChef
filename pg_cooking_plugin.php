@@ -1,11 +1,13 @@
 <?php
 /**
 * Plugin Name: PGChef - Project Gorgon Cooking Helper
-* Version: 1.1
+* Version: 3.2
 * Description: Upload your inventory JSON and get recipe recommendations based on available ingredients or based on all ingredients available in game
-* Author: Elindir & Claude AI
+* Author:  Elindir (initial framework with and debugging support by Claude AI)
 * Update 3/21/26: Showing Meal type (Meal/Snack/Instantsnack) and VegStatus (Meat/Fish/Vegetarian)
-* Update 3/22/26: Mealtypes (Meal/Snack/Instant-Snack) can now be selected in your search
+* Update 3/22/26: Filtering Meal type (Meal/Snack/Instantsnack)
+* Update 3/29/26: Uploading the in-game gourmand report and filtering for dishes that have not been eaten before
+* Update 4/6/26: Switch between showing full details or just the recipe names to simplify copy/paste to game chat
 */
 
 
@@ -25,6 +27,8 @@ class PGCookingHelper {
 		add_shortcode('pg_cooking_helper', array($this, 'render_frontend_ui'));
 		add_action('wp_ajax_parse_inventory', array($this, 'handle_inventory_upload'));
 		add_action('wp_ajax_nopriv_parse_inventory', array($this, 'handle_inventory_upload'));
+		add_action('wp_ajax_parse_gourmand', array($this, 'handle_gourmand_upload'));		
+		add_action('wp_ajax_nopriv_parse_gourmand', array($this, 'handle_gourmand_upload'));
 		add_action('wp_ajax_get_recipes', array($this, 'get_recipe_suggestions'));
 		add_action('wp_ajax_nopriv_get_recipes', array($this, 'get_recipe_suggestions'));
 	}
@@ -44,21 +48,22 @@ class PGCookingHelper {
 	}
     
 	public function render_frontend_ui() {
+			
 
 			wp_enqueue_script('jquery');
 			wp_localize_script('jquery', 'pg_ajax', array(
 				'ajax_url' => admin_url('admin-ajax.php'),
 				'nonce' => wp_create_nonce('pg_cooking_nonce')
-			));            
+			));        
+        
         
 		ob_start();
 		?>
 		<div id="pg-cooking-helper">
 				<div class="pg-upload-section">
-					<div id="pluginDescription" class="pg-plugin-description">
-						<strong> Project: Gorgon Cooking Helper</strong>
-						<p>Upload your inventory JSON (or let PG provide all ingredients - no VIP needed) to get recipe recommendations!</p>
-					</div>                
+					<strong> Project: Gorgon Cooking Helper</strong>
+					<p>Upload your inventory JSON (or let PG provide all ingredients - no VIP needed) to get recipe recommendations!</p>
+                
 					<div id="uploadOptions" class="pg-upload-area" id="uploadArea">
 						<div class="upload-content">
 								<div class="upload-icon">📁</div>
@@ -92,16 +97,32 @@ class PGCookingHelper {
     					<input type="checkbox" id="useAllIngredients">
    					 Show all possible recipes (ignore my inventory)
 					</label>
-		<!---			<label>
-						<br />					
-						<button class="pg-btn" id="selectMealTypeBtn">Include Snacks or Meals or InstantSnacks (default includes all)</button> 
-					</label>         	--->			
+					<label>
+    					<input type="checkbox" id="useGourmandCheck">
+   					 Use your Gourmand Report
+					</label>
+					<label>
+						<input type="checkbox" id="showCompactList">
+						Show only Recipes Names					
+					</label>
+						
 					
-<!--					<label>
-						<br />    					
-    					<input type="checkbox" id="showOnlyCanMakeList">
-   					 Show only recipes I can make with my inventory (no partial recipes)
-					</label>              -->
+<!--	 upload option to use the PG gourmand report 'SkillReport_xx_xx.txt' -->				
+					<div id="uploadGourmandOptions" class="pg-upload-area" id="uploadGourmandArea">
+						<div class="upload-content">								
+								<p>Click to browse and upload your gourmand-report (SkillReport_xx.txt). <br /> To export your report in-game: skills&abilities/gourmand/report <br /> To find your gourmand report: in-game settings/vip </p>
+								<input type="file" id="gourmandFile" accept=".txt" style="display: none;">
+								<button class="pg-btn" onclick="document.getElementById('gourmandFile').click()">Use Your Gourmand Report</button>
+						</div>
+					</div>	
+					<div id="gourmandInfo" class="file-info" style="display: none;"></div>		
+					 
+				<div id="loading" class="loadingGourmand" style="display: none;">
+					<div class="spinner"></div>
+					<p>Analyzing your gourmand report...</p>
+				</div>					 
+					 
+					  
             </div>
          		<div id="mealtypeSettings" class="pg-mealtype-section" style="display: none;">	
 					<strong>Included Meal Types (select any, default: all)</strong>
@@ -147,10 +168,6 @@ class PGCookingHelper {
 				padding: 20px;
 				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 		}
-        
-		.pg-plugin-description {
-				justify-content: center;
-		}        
         
 		.pg-upload-area {
 				border: 2px dashed #4CAF50;
@@ -270,6 +287,11 @@ class PGCookingHelper {
 				text-align: center;
 				padding: 40px;
 		}
+       
+		.loadingGourmand {
+				text-align: center;
+				padding: 40px;
+		}       
         
 		.spinner {
 				border: 4px solid #f3f3f3;
@@ -299,15 +321,22 @@ class PGCookingHelper {
 
 		jQuery(document).ready(function($) {
 				let inventoryData = null;
+				let gourmandData = null;
             
 				// File upload handling
 				const uploadArea = $('#uploadArea');
 				const fileInput = $('#inventoryFile');
 				const fileDatabase = $('#inventoryDatabase');
 				let useingredients_db_handle = false;
-				//let selectMealType_handle = false;
+				let usegourmand_handle = false;
+				let showcompactlist_handle = false;
+				//Use the exported Gourmand Report (SkillReport_xx.txt) to show only recipes of foods that have not been eaten yet
+				const uploadGourmandArea = $('#uploadGourmandArea');
+				const fileGourmandInput = $('#gourmandFile');
             
-				// Drag and drop
+				$('#uploadGourmandOptions').hide();
+								
+				// Drag and drop - JSON-storage file
 				uploadArea.on('dragover', function(e) {
 					e.preventDefault();
 					$(this).addClass('dragover');
@@ -341,14 +370,113 @@ class PGCookingHelper {
 				    $('#skillSettings').show();
 				    $('#fileInfo').html('<italic>Mode:</italic> Using all PG ingredients').show();
 				});
-				
-			  // $('#selectMealTypeBtn').on('click', function() {
-       				//selectMealType_handle = true; 
-       				// use 3 check boxes to include Meal/Snack/InstantSnack
-       				$('#mealtypeSettings').show(); 
-       				//$('#mealtypeInfo').html('<italic>Mode:</italic> Please select a meal type').show();
-           //});
+
+ 				// use 3 check boxes to include Meal/Snack/InstantSnack
+ 				$('#mealtypeSettings').show(); 
             
+            $('#useGourmandCheck').on('change', function() {
+            	usegourmand_handle = !usegourmand_handle;
+				   gourmandData = null;
+					if (usegourmand_handle){
+					   $('#uploadGourmandOptions').show();
+					   $('#gourmandInfo').html('<italic>Mode:</italic> Using your Gourmand report').show();
+					   }
+					   else{
+					   	$('#uploadGourmandOptions').hide();
+					   	$('#gourmandInfo').hide();
+					   }
+					
+            });
+            
+            $('#showCompactList').on('change', function(){
+					showcompactlist_handle = !showcompactlist_handle;            
+            });
+            
+				// Drag and drop - TXT-gourmand file
+				uploadGourmandArea.on('dragover', function(e) {
+					e.preventDefault();
+					$(this).addClass('dragover');
+				});
+            
+				uploadGourmandArea.on('dragleave', function() {
+					$(this).removeClass('dragover');
+				});
+            
+				uploadGourmandArea.on('drop', function(e) {
+					e.preventDefault();
+					$(this).removeClass('dragover');
+					const files = e.originalEvent.dataTransfer.files;
+					if (files.length > 0) {
+						handleGourmandFile(files[0]);
+					}
+				});    
+				
+				fileGourmandInput.on('change', function() {
+					if (this.files.length > 0) {
+						handleGourmandFile(this.files[0]);
+					}
+					$('#uploadGourmandOptions').hide();
+				});	        
+
+            function handleGourmandFile(file) {
+					if (!file.name.toLowerCase().endsWith('.txt')) {
+						alert('Please select a SkillReport txt file');
+						return;
+					}
+                
+					$('#loadingGourmand').show();
+					const reader = new FileReader();
+                
+					reader.onload = function(e) {
+					try {
+						gourmandData = e.target.result;
+						
+					//	console.log('Read-in gourmand report ', gourmandData);
+						console.log('FileReader data type: ', typeof gourmandData); 						
+						
+						// parsing the gourmand report here		
+						processGourmandReport(gourmandData, file.name);		
+						} catch (error) {
+                  	                 
+							alert('Error parsing TXT file: ' + error.message);
+							$('#loadingGourmand').hide();
+						}
+					};	
+					reader.readAsText(file);
+            }
+            
+				function processGourmandReport(data, filename) {
+					console.log('========= DEBUG info ========= data:', data);
+					console.log('Data type Gourmand in processGourmandReport:', typeof data);
+					console.log('==================');						
+								
+// might have to explode gourmandData here & parse								
+								
+								                
+					$.ajax({
+						url: pg_ajax.ajax_url,
+						type: 'POST',
+						data: {
+								action: 'parse_gourmand',
+								nonce: pg_ajax.nonce,
+								gourmand_data: data
+						},              
+						success: function(response) {
+								console.log('processGourmandReport success:',typeof data);	
+								//showInventoryInfo(response.data, filename);
+								$('#loadingGourmand').hide();
+								},
+						error: function(xhr, status, error) {
+							console.log('XHR status:', xhr.status);
+						   console.log('XHR response:', xhr.responseText);
+						   console.log('Error:', error);						    
+						    alert('Error processing gourmand report: ' + error);
+						    $('#loadingGourmand').hide(); 
+						}
+					});
+				}            
+            
+            // Inventory File loading & handling
 				function handleFile(file) {
 					if (!file.name.toLowerCase().endsWith('.json')) {
 						alert('Please select a JSON file');
@@ -380,8 +508,7 @@ class PGCookingHelper {
 					console.log('========= DEBUG info ========= data:', data);
 					console.log('Data type:', typeof data);
 					console.log('Stringified:', JSON.stringify(data));
-					console.log('==================');					
-		
+					console.log('==================');							
 								                
 					$.ajax({
 						url: pg_ajax.ajax_url,
@@ -393,7 +520,8 @@ class PGCookingHelper {
 						},              
 						success: function(response) {
 								console.log('success:',typeof data);							                
-								showInventoryInfo(response.data, filename);
+								//showInventoryInfo(response.data, filename);
+								console.log('processInventory data received:', data);
 									$('#skillSettings').show(); 	
 									$('#loading').hide();
 								},
@@ -405,12 +533,13 @@ class PGCookingHelper {
 					});
 				}
             
-				function showInventoryInfo(data, filename) {
+	/*			function showInventoryInfo(data, filename) {
 					console.log('showInventoryInfo received:', data);					
 					
-				}
+				}*/
             
 				$('#findRecipes').on('click', function() {
+					
 					if (!useingredients_db_handle){					
 						if (!inventoryData) {
 							alert('Please upload an inventory file first');
@@ -420,8 +549,8 @@ class PGCookingHelper {
 					else{
 						inventoryData=[];
 					}
-					
-						
+					console.log('findRecipes beginning - data received:', typeof gourmandData);					
+
                 
 					$('#loading').show();
 					$('#results').hide();
@@ -435,7 +564,10 @@ class PGCookingHelper {
 						select_meal_type_Meal: $('#selectMeals').prop('checked'), 
 						select_meal_type_Snack: $('#selectSnacks').prop('checked'), 
 						select_meal_type_InstantSnack: $('#selectInstantSnacks').prop('checked'), 
-						useingredients_db: useingredients_db_handle
+						useingredients_db: useingredients_db_handle,
+						//usegourmand: $('#useGourmandCheck').prop('checked')
+						usegourmand: usegourmand_handle,
+						showcompactlist: showcompactlist_handle
 					};    
                 
 					$.ajax({
@@ -445,12 +577,15 @@ class PGCookingHelper {
 								action: 'get_recipes',
 								nonce: pg_ajax.nonce,
 								inventory_data: JSON.stringify(inventoryData),
-								settings: JSON.stringify(settings)
+								settings: JSON.stringify(settings),
+								gourmand_data: gourmandData
 						},
 						success: function(response) {
-								if (response.success) {
+								if (response.success && !showcompactlist_handle) {
 									displayRecipes(response.data);
-								} else {								
+								} else if(response.success && showcompactlist_handle){
+									displayRecipeNames(response.data);								
+								} else if(!response.success) {								
 									 console.log('Full response:', response);
 								    console.log('Response data:', response.data);
 								}
@@ -460,7 +595,9 @@ class PGCookingHelper {
 								alert('Error processing recipes');
 								$('#loading').hide();
 						}
-					});
+					});					
+					console.log('usegourmand_handle:', usegourmand_handle);
+					console.log('findRecipes:data received:', typeof gourmandData);
 				});
             
 				function displayRecipes(data) {
@@ -490,7 +627,7 @@ class PGCookingHelper {
 						});
 					} else {
 						canMakeHtml = '<p>No recipes available with current ingredients.</p>';
-						console.log('showInventoryInfo received:', data);
+						console.log('displayRecipes data received:', typeof data);
 					}
                 
 					let almostCanMakeHtml = '';
@@ -519,6 +656,48 @@ class PGCookingHelper {
 					$('#almostCanMakeList').html(almostCanMakeHtml);
 					$('#results').show();
 				}
+				
+				function displayRecipeNames(data) {
+					 console.log('displayRecipes received:', data);
+				    if (!data) {
+				        console.log('No data received');
+				        return;
+				    }
+				    
+					const canMake = data.can_make || [];
+					const almostCanMake = data.almost_can_make || [];
+                
+					let canMakeHtml = '';
+					if (canMake.length > 0) {
+						canMake.forEach(recipe => {
+								canMakeHtml += `
+									<div class="recipe-item">
+										<div class="recipe-name"><strong>${recipe.Name} </strong></div>
+									</div>
+								`;
+						});
+					} else {
+						canMakeHtml = '<p>No recipes available with current ingredients.</p>';
+						console.log('displayRecipes data received:', typeof data);
+					}
+                
+					let almostCanMakeHtml = '';
+					if (almostCanMake.length > 0) {
+						almostCanMake.forEach(recipe => {
+								almostCanMakeHtml += `
+									<div class="recipe-item">
+										<div class="recipe-name"><strong>${recipe.Name} </strong></div>
+									</div>
+								`;
+						});
+					} else {
+						almostCanMakeHtml = '<p>No partial matches found.</p>';
+					}
+                
+					$('#canMakeList').html(canMakeHtml);
+					$('#almostCanMakeList').html(almostCanMakeHtml);
+					$('#results').show();
+				}								
 		});
 		
   
@@ -527,7 +706,48 @@ class PGCookingHelper {
 		return ob_get_clean();
 	}
         
-        
+   public function handle_gourmand_upload() {
+		if (!wp_verify_nonce($_POST['nonce'], 'pg_cooking_nonce')) {
+			wp_send_json_error(array('message' => 'Invalid nonce'));
+		}
+    
+		$foods_eaten = array();
+		
+		$raw = stripslashes($_POST['gourmand_data']);
+		if (strlen($raw) > 5242880) { // 5MB limit
+		    wp_send_json_error(array('message' => 'File too large'));
+		}  				   
+
+		// Split into lines
+    	$lines = explode("\n", $raw);    
+	   foreach ($lines as $line) {
+	    
+	        $line = trim($line);
+	        
+	        // Skip empty lines and section headers
+	        if (empty($line) || !strpos($line, ':')) {
+	            continue;
+	        }
+	        
+	        // Split on the LAST colon to handle names like "Meaty: Soup: 5"
+	        $last_colon = strrpos($line, ':');
+	        $name = trim(substr($line, 0, $last_colon));
+	        $count = intval(trim(substr($line, $last_colon + 1)));
+	        
+	        // Strip the (HAS MEAT) etc. annotations
+	        $name = preg_replace('/\s*\(HAS [^)]+\)/', '', $name);
+	        // Strip surrounding quotes from names like "Meaty" Tomato Soup
+	        $name = trim($name, '"');
+	        
+	        //$foods_eaten[strtolower($name)] = $count;
+	        $foods_eaten[strtolower($name)] = intval(trim(substr($line, $last_colon + 1)));
+	    }
+    
+    wp_send_json_success(array(
+        'foods_count' => count($foods_eaten),
+        'foods' => $foods_eaten
+    ));
+	}     
  
 	public function handle_inventory_upload() {
 	
@@ -537,7 +757,7 @@ class PGCookingHelper {
     
 		$raw = $_POST['inventory_data'];
 		$raw = stripslashes($raw);    
-// Replace tab characters inside the content
+		// Replace tab characters inside the content
 		$raw = preg_replace('/\t/', ' ', $raw);
 		$inventory = json_decode($raw, true);		    
     
@@ -570,12 +790,31 @@ class PGCookingHelper {
         
 		$raw = $_POST['inventory_data'];
 		$raw = stripslashes($raw);    
-// Replace tab characters inside the content
+		// Replace tab characters inside the content
 		$raw = preg_replace('/\t/', ' ', $raw);
 		$inventory = json_decode($raw, true);	
 		
 		$settings_json = $_POST['settings'];		
 		$settings = json_decode(stripslashes($settings_json), true);		
+		
+		
+		$foods_eaten = array();
+
+		if (!empty($_POST['gourmand_data'])) {
+		    $raw_gourmand = stripslashes($_POST['gourmand_data']);
+		    $lines = explode("\n", $raw_gourmand);
+		
+		    foreach ($lines as $line) {
+		        $line = trim($line);
+		        if (empty($line) || !strpos($line, ':')) continue;
+		        $last_colon = strrpos($line, ':');
+		        $name = trim(substr($line, 0, $last_colon));
+		        $name = preg_replace('/\s*\(HAS [^)]+\)/', '', $name);
+		        $name = trim($name, '"');
+		        $foods_eaten[strtolower($name)] = intval(trim(substr($line, $last_colon + 1)));
+		    }
+		}		
+	
 		
 		$useingredients_db = $settings['useingredients_db'];
 
@@ -583,19 +822,21 @@ class PGCookingHelper {
 		$recipes_debug = $this->get_recipes_database();	
 		
 		if (!$useingredients_db) {
-		$ingredients = $this->parse_cooking_ingredients($inventory, $ingredients_db);
+			$ingredients = $this->parse_cooking_ingredients($inventory, $ingredients_db);
 		}
 		else{
 			$ingredients = $ingredients_db;
 		}
 		
-		$recipes = $recipes_debug['recipes']; 
+		$recipes = $recipes_debug['recipes'];
  
 		$can_make = array();
 		$almost_can_make = array();
 		
         
 		foreach ($recipes as $recipe) {
+			
+			
 			// Filter by cooking level range
 			if ($recipe['CookingLevel'] < intval($settings['min_cooking_level']) || 
 				$recipe['CookingLevel'] > intval($settings['max_cooking_level'])) {
@@ -612,6 +853,10 @@ class PGCookingHelper {
 				continue;
 			}
 			
+			if (!empty($foods_eaten) && isset($foods_eaten[strtolower($recipe['Name'])])) {
+        		continue;
+    		}
+
 			$meal_filter_active = $settings['select_meal_type_Meal'] || 
                       $settings['select_meal_type_Snack'] || 
                       $settings['select_meal_type_InstantSnack'];
@@ -622,6 +867,8 @@ class PGCookingHelper {
 	      $ingredient_pool = $settings['use_all_ingredients'] 
  		   ? $ingredients_db 
   			: $ingredients;
+
+
             
 				foreach ($recipe['Ingredients'] as $required_ingredient) {
 					$found = false;
@@ -670,12 +917,15 @@ class PGCookingHelper {
 				}
 		}
       wp_send_json_success(array(  
+			'debug_foods_count' => count($foods_eaten),
+			'debug_foods_sample' => array_slice($foods_eaten, 0, 3, true),	
 	     'can_make' => $can_make,
 	     'almost_can_make' => $almost_can_make,
 	     'have_ingredient' => $have_ingredient,
 	     'required_ingredient' => $required_ingredient,
 	     'Ingredients' => $ingredient_names,
-		  'debug_recipes' => $recipes
+		  'debug_recipes' => $recipes,
+		  'foods_eaten' => $foods_eaten
 	   ));
 	}
 
@@ -767,11 +1017,6 @@ class PGCookingHelper {
 	return $ingredients;
 	}
 
-
-/*	private function load_gourmand_report_from_txt() {
-
-    return $result;	    
-	} */
 	            
 	private function load_recipes_from_json() {
 	    $result = array(
