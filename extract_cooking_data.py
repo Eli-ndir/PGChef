@@ -150,7 +150,14 @@ def extract_recipes(recipes_data, item_lookup, preparedfood_lookup):
 
     for key, recipe in recipes_data.items():
         # Only cooking recipes
-        if recipe.get('Skill') != 'Cooking':
+        if recipe.get('Skill') == 'Cooking':
+        	   recipe_type = 'CookingRecipe'
+        elif recipe.get('Skill') == 'SushiPreparation': 
+            recipe_type = 'SushiPreparationRecipe'
+        elif recipe.get('Skill') == 'IceConjuration': 
+            recipe_type = 'IceConjurationRecipe'
+        else:
+            recipe_type = 'Unknown'
             continue
 
         # Resolve ingredient ItemCodes to names
@@ -172,7 +179,8 @@ def extract_recipes(recipes_data, item_lookup, preparedfood_lookup):
         		"GourmandLevel": food_details.get('GourmandLevel', 0),
         		"MealType": food_details.get('MealType', 'Unknown'),
         		"VegStatus": food_details.get('VegStatus', 'Unknown'),
-        		"Ingredients": ingredients
+        		"Ingredients": ingredients,
+        		"RecipeType": recipe.get('Skill', 'Unkown')
         		})
 
     # Sort by cooking level, then alphabetically

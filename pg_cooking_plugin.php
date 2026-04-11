@@ -1,13 +1,14 @@
 <?php
 /**
 * Plugin Name: PGChef - Project Gorgon Cooking Helper
-* Version: 3.2
+* Version: 3.3
 * Description: Upload your inventory JSON and get recipe recommendations based on available ingredients or based on all ingredients available in game
 * Author:  Elindir (initial framework with and debugging support by Claude AI)
 * Update 3/21/26: Showing Meal type (Meal/Snack/Instantsnack) and VegStatus (Meat/Fish/Vegetarian)
 * Update 3/22/26: Filtering Meal type (Meal/Snack/Instantsnack)
 * Update 3/29/26: Uploading the in-game gourmand report and filtering for dishes that have not been eaten before
 * Update 4/6/26: Switch between showing full details or just the recipe names to simplify copy/paste to game chat
+* Update 4/11/26: Now also included: SushiPreparation and IceConjuration recipes
 */
 
 
