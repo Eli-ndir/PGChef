@@ -1,7 +1,7 @@
 <?php
 /**
 * Plugin Name: PGChef - Project Gorgon Cooking Helper
-* Version: 3.3
+* Version: 4.0
 * Description: Upload your inventory JSON and get recipe recommendations based on available ingredients or based on all ingredients available in game
 * Author:  Elindir (initial framework with and debugging support by Claude AI)
 * Update 3/21/26: Showing Meal type (Meal/Snack/Instantsnack) and VegStatus (Meat/Fish/Vegetarian)
@@ -9,6 +9,7 @@
 * Update 3/29/26: Uploading the in-game gourmand report and filtering for dishes that have not been eaten before
 * Update 4/6/26: Switch between showing full details or just the recipe names to simplify copy/paste to game chat
 * Update 4/11/26: Now also included: SushiPreparation and IceConjuration recipes
+* Update 4/13/26: Now also included: Cheesemaking and Mycology recipes - including checkboxes to select specific recipe types
 */
 
 
@@ -103,8 +104,9 @@ class PGCookingHelper {
    					 Use your Gourmand Report
 					</label>
 					<label>
+					<br /> 
 						<input type="checkbox" id="showCompactList">
-						Show only Recipes Names					
+						Show only Recipe Names					
 					</label>
 						
 					
@@ -126,8 +128,8 @@ class PGCookingHelper {
 					  
             </div>
          		<div id="mealtypeSettings" class="pg-mealtype-section" style="display: none;">	
-					<strong>Included Meal Types (select any, default: all)</strong>
 					<div class="mealtype-controls">		
+										Included Meal Types (select any, default: all)
 					<label>
 						 <br />   					
     					<input type="checkbox" id="selectMeals">
@@ -139,6 +141,26 @@ class PGCookingHelper {
 					</label>
 					</div> 	     
               </div>
+				
+         		<div id="recipetypeSettings" class="pg-recipetype-section" style="display: none;">	
+					<div class="recipetype-controls">		
+										Included Recipe Types (select any, default: all)
+					<label>
+						 <br />   					
+    					<input type="checkbox" id="selectCooking">
+   					 Cooking
+    					<input type="checkbox" id="selectCheesemaking">
+   					 Cheese
+     					<input type="checkbox" id="selectIceconjuration">
+   					 Ice cream
+   					<input type="checkbox" id="selectSushipreparation">
+   					 Sushi
+   					<input type="checkbox" id="selectMycology">
+   					 Mushroom smoothies
+					</label>
+					</div> 	     
+              </div>              
+             </div> 
               
                 
 					<button class="pg-btn pg-btn-primary" id="findRecipes">Find Recipes!</button>
@@ -173,7 +195,7 @@ class PGCookingHelper {
 		.pg-upload-area {
 				border: 2px dashed #4CAF50;
 				border-radius: 10px;
-				padding: 30px;
+				padding: 20px;
 				text-align: center;
 				background: #f9f9f9;
 				transition: all 0.3s ease;
@@ -214,7 +236,7 @@ class PGCookingHelper {
 		}
         
 		.pg-skill-section, .pg-results {
-				background: white;
+				background: #eee;
 				border: 1px solid #ddd;
 				border-radius: 8px;
 				padding: 16px;
@@ -222,13 +244,21 @@ class PGCookingHelper {
 		}
 		
 		.pg-mealtype-section {
-				background: white;
-				border: 1px solid #ddd;
+				background: #ddd;
+				border: 1px solid #ccc;
 				border-radius: 8px;
-				padding: 16px;
-				margin: 20px 0;
+				padding: 8px 5px 5px 5px;
+				margin: 8px 0 0 0;
 		}
-        
+		
+		.pg-recipetype-section {
+				background: #ddd;
+				border: 1px solid #ccc;
+				border-radius: 8px;
+				padding: 8px 5px 5px 5px;
+				margin: 8px 0 0 0;
+		}
+		        
 		.quality-controls {
 				display: flex;
 				gap: 20px;
@@ -374,6 +404,8 @@ class PGCookingHelper {
 
  				// use 3 check boxes to include Meal/Snack/InstantSnack
  				$('#mealtypeSettings').show(); 
+				// use check boxes to include Cooking/Cheese/Sushi/Mushroom Smoothies/Ice cream
+ 				$('#recipetypeSettings').show();             
             
             $('#useGourmandCheck').on('change', function() {
             	usegourmand_handle = !usegourmand_handle;
@@ -565,6 +597,11 @@ class PGCookingHelper {
 						select_meal_type_Meal: $('#selectMeals').prop('checked'), 
 						select_meal_type_Snack: $('#selectSnacks').prop('checked'), 
 						select_meal_type_InstantSnack: $('#selectInstantSnacks').prop('checked'), 
+						select_recipe_type_Cooking: $('#selectCooking').prop('checked'), 
+						select_recipe_type_Cheesemaking: $('#selectCheesemaking').prop('checked'), 
+						select_recipe_type_Mycology: $('#selectMycology').prop('checked'), 
+						select_recipe_type_Iceconjuration: $('#selectIceconjuration').prop('checked'),
+						select_recipe_type_Sushipreparation: $('#selectSushipreparation').prop('checked'),  
 						useingredients_db: useingredients_db_handle,
 						//usegourmand: $('#useGourmandCheck').prop('checked')
 						usegourmand: usegourmand_handle,
@@ -617,7 +654,7 @@ class PGCookingHelper {
 								canMakeHtml += `
 									<div class="recipe-item">
 										<div class="recipe-name"><strong>${recipe.Name} </strong><italic>• ${recipe.MealType} • ${recipe.VegStatus}</italic></div>
-										<div class="recipe-level">Cooking Level ${recipe.CookingLevel} • Gourmand Level ${recipe.GourmandLevel}</div>
+										<div class="recipe-level">${recipe.RecipeType} Level ${recipe.CookingLevel} • Gourmand Level ${recipe.GourmandLevel}</div>
 										<div class="ingredients-needed">
 												<italic>Ingredients:</italic> ${recipe.Ingredients.map(ing => 
 													`<span class="ingredient-have">${ing}</span>`
@@ -637,7 +674,7 @@ class PGCookingHelper {
 								almostCanMakeHtml += `
 									<div class="recipe-item">
 										<div class="recipe-name"><strong>${recipe.Name} </strong><italic>• ${recipe.MealType} • ${recipe.VegStatus}</italic></div>
-										<div class="recipe-level">Cooking Level ${recipe.CookingLevel} • Gourmand Level ${recipe.GourmandLevel}</div>
+										<div class="recipe-level">${recipe.RecipeType} Level ${recipe.CookingLevel} • Gourmand Level ${recipe.GourmandLevel}</div>
 										<div class="ingredients-needed">
 												<italic>Have:</italic> ${recipe.have_ingredients.map(ing => 
 													`<span class="ingredient-have">${ing}</span>`
@@ -837,6 +874,10 @@ class PGCookingHelper {
         
 		foreach ($recipes as $recipe) {
 			
+			// Skip recipes that don't produce actual food
+			if ($recipe['MealType'] == 'Unknown' || empty($recipe['Ingredients'])) {
+			    continue;
+			}
 			
 			// Filter by cooking level range
 			if ($recipe['CookingLevel'] < intval($settings['min_cooking_level']) || 
@@ -861,7 +902,13 @@ class PGCookingHelper {
 			$meal_filter_active = $settings['select_meal_type_Meal'] || 
                       $settings['select_meal_type_Snack'] || 
                       $settings['select_meal_type_InstantSnack'];
-         
+
+			$skill_filter_active = $settings['select_recipe_type_Cooking'] || 
+                      $settings['select_recipe_type_Cheesemaking'] || 
+                      $settings['select_recipe_type_Iceconjuration'] || 
+                      $settings['select_recipe_type_Sushipreparation'] || 
+                      $settings['select_recipe_type_Mycology'];
+                               
 			$missing_ingredients = array();
 			$have_ingredients = array();
             
@@ -873,11 +920,13 @@ class PGCookingHelper {
             
 				foreach ($recipe['Ingredients'] as $required_ingredient) {
 					$found = false;
-			
+
 					//if MealType is selected and the recipe belongs to that category, continue		
-					if (!$meal_filter_active || ($settings['select_meal_type_Meal'] && $recipe['MealType'] == 'Meal') ||
+					if ((!$meal_filter_active || ($settings['select_meal_type_Meal'] && $recipe['MealType'] == 'Meal') ||
 				    ($settings['select_meal_type_Snack'] && $recipe['MealType'] == 'Snack') ||
-				    ($settings['select_meal_type_InstantSnack'] && $recipe['MealType'] == 'InstantSnack')) {
+				    ($settings['select_meal_type_InstantSnack'] && $recipe['MealType'] == 'InstantSnack')) && (!$skill_filter_active || ($settings['select_recipe_type_Cooking'] && $recipe['RecipeType'] == 'Cooking') ||
+				    ($settings['select_recipe_type_Mycology'] && $recipe['RecipeType'] == 'Mycology') || ($settings['select_recipe_type_Sushipreparation'] && $recipe['RecipeType'] == 'SushiPreparation') || ($settings['select_recipe_type_Iceconjuration'] && $recipe['RecipeType'] == 'IceConjuration') ||
+				    ($settings['select_recipe_type_Cheesemaking'] && $recipe['RecipeType'] == 'Cheesemaking')) ){
 
 						foreach ($ingredient_pool as $have_ingredient)	{						
 							if (stripos($have_ingredient['Name'], $required_ingredient) !== false ||
@@ -902,6 +951,7 @@ class PGCookingHelper {
 						'GourmandLevel' => $recipe['GourmandLevel'],
 						'MealType' => $recipe['MealType'],
 						'VegStatus' => $recipe['VegStatus'],
+						'RecipeType' => $recipe['RecipeType'],
 						'Ingredients' => $have_ingredients
 					);
 				} elseif (count($missing_ingredients) <= 2 && count($have_ingredients) > 0) {
@@ -912,6 +962,7 @@ class PGCookingHelper {
 						'GourmandLevel' => $recipe['GourmandLevel'],
 						'MealType' => $recipe['MealType'],
 						'VegStatus' => $recipe['VegStatus'],
+						'RecipeType' => $recipe['RecipeType'],
 						'have_ingredients' => $have_ingredients,
 						'missing_ingredients' => $missing_ingredients
 					);
@@ -1067,7 +1118,9 @@ class PGCookingHelper {
 				      'Name' => "Baked Potato",
 				      'CookingLevel' => 0,
 				      'GourmandLevel' => 0,
+				      'MealType' => "Meal",
 				      'VegStatus' => "Vegetarian",
+				      'RecipeType' => "Cooking",
 				      'Ingredients' => array('potato', 'salt')
 				      )
 			      )
@@ -1097,6 +1150,7 @@ class PGCookingHelper {
 			'GourmandLevel' => intval($recipe['GourmandLevel']),
 			'MealType' => $this->clean_ingredient_name($recipe['MealType']),
 			'VegStatus' => $this->clean_ingredient_name($recipe['VegStatus']),
+			'RecipeType' => $this->clean_ingredient_name($recipe['RecipeType']),
 			'Ingredients' => $ingredient_names,
 			'Ingredients_detailed' => $recipe['Ingredients'] // Store full ingredient data for future use
 		);

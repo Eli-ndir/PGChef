@@ -78,8 +78,12 @@ def extract_preparedfood(items_data):
         keywords = item.get('Keywords', [])
         item_code = int(key.replace('item_', ''))
 
-#        if not has_keyword(keywords, 'PreparedFood'):
+#        if not has_keyword(keywords, 'Food'):
 #	        continue
+
+        if not has_keyword(keywords, 'PreparedFood'):
+	        continue
+
         if has_keyword(keywords, 'MeatDish'):
         	veg_status = 'Meat'
         elif has_keyword(keywords, 'FishDish'):
@@ -107,8 +111,8 @@ def extract_preparedfood(items_data):
             meal_type = 'Snack'
         elif has_keyword(keywords, 'Edible'): 
             meal_type = 'Meal'
-        elif has_keyword(keywords, 'CookingIngredient'): 
-            meal_type = 'CookingIngredient'
+ #       elif has_keyword(keywords, 'CookingIngredient'): 
+ #           meal_type = 'CookingIngredient'
         else:
             meal_type = 'Unknown'
 
@@ -156,6 +160,10 @@ def extract_recipes(recipes_data, item_lookup, preparedfood_lookup):
             recipe_type = 'SushiPreparationRecipe'
         elif recipe.get('Skill') == 'IceConjuration': 
             recipe_type = 'IceConjurationRecipe'
+        elif recipe.get('Skill') == 'Mycology': 
+            recipe_type = 'MycologyRecipe'
+        elif recipe.get('Skill') == 'Cheesemaking': 
+            recipe_type = 'CheesemakingRecipe'
         else:
             recipe_type = 'Unknown'
             continue
